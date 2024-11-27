@@ -26,6 +26,13 @@ clock = pygame.time.Clock()
 PUSHER_RADIUS = 40
 PUCK_RADIUS = 20
 
+# Definição das áreas de gol
+GOAL_WIDTH = 20  # Largura do gol na lateral
+GOAL_HEIGHT = HEIGHT // 4  # Altura do gol
+GOAL_CENTER = HEIGHT // 2  # Posição central do gol
+GOAL_TOP = GOAL_CENTER - GOAL_HEIGHT // 2  # Topo do gol
+GOAL_BOTTOM = GOAL_CENTER + GOAL_HEIGHT // 2  # Base do gol
+
 # Inicializações
 pusher1_pos = [150, HEIGHT // 2]
 pusher2_pos = [WIDTH - 150, HEIGHT // 2]
@@ -60,22 +67,18 @@ def reset_puck():
 
 # Função para controlar a IA
 def ai_movement():
-    # Movimento vertical: A IA se move para cima ou para baixo em direção à posição do disco
-    if puck_pos[1] > pusher2_pos[1] + PUSHER_RADIUS:  # Se o disco está abaixo da IA
+    if puck_pos[1] > pusher2_pos[1] + PUSHER_RADIUS:
         pusher2_pos[1] += pusher2_speed
-    elif puck_pos[1] < pusher2_pos[1] - PUSHER_RADIUS:  # Se o disco está acima da IA
+    elif puck_pos[1] < pusher2_pos[1] - PUSHER_RADIUS:
         pusher2_pos[1] -= pusher2_speed
 
-    # Movimento horizontal: A IA tenta acompanhar o disco no eixo horizontal
-    if puck_pos[0] > pusher2_pos[0] + PUSHER_RADIUS:  # Se o disco está à direita da IA
+    if puck_pos[0] > pusher2_pos[0] + PUSHER_RADIUS:
         pusher2_pos[0] += pusher2_speed
-    elif puck_pos[0] < pusher2_pos[0] - PUSHER_RADIUS:  # Se o disco está à esquerda da IA
+    elif puck_pos[0] < pusher2_pos[0] - PUSHER_RADIUS:
         pusher2_pos[0] -= pusher2_speed
 
-    # Limites da tela para o movimento do pusher
     pusher2_pos[1] = max(PUSHER_RADIUS, min(pusher2_pos[1], HEIGHT - PUSHER_RADIUS))
     pusher2_pos[0] = max(WIDTH // 2 + PUSHER_RADIUS, min(pusher2_pos[0], WIDTH - PUSHER_RADIUS))
-
 
 # Escolha do modo de jogo
 against_ai = False
@@ -85,7 +88,7 @@ while not mode_selected:
     screen.fill(WHITE)
     draw_text("Pressione 1 para Jogador vs Jogador", small_font, BLACK, WIDTH // 2 - 200, HEIGHT // 2 - 40)
     draw_text("Pressione 2 para Jogador vs Máquina", small_font, BLACK, WIDTH // 2 - 200, HEIGHT // 2 + 10)
-    pygame.display.update()  # Atualiza a tela
+    pygame.display.update()
 
     for event in pygame.event.get():
         if event.type == QUIT:
@@ -106,6 +109,10 @@ while playing:
 
     # Desenhar linha central
     pygame.draw.line(screen, WHITE, (WIDTH // 2, 0), (WIDTH // 2, HEIGHT), 5)
+
+    # Desenhar as áreas de gol
+    pygame.draw.rect(screen, WHITE, (0, GOAL_TOP, GOAL_WIDTH, GOAL_HEIGHT))  # Gol do Jogador 1
+    pygame.draw.rect(screen, WHITE, (WIDTH - GOAL_WIDTH, GOAL_TOP, GOAL_WIDTH, GOAL_HEIGHT))  # Gol do Jogador 2
 
     # Timer regressivo
     seconds = (pygame.time.get_ticks() - start_ticks) // 1000
@@ -148,13 +155,25 @@ while playing:
     puck_pos[0] += puck_velocity[0]
     puck_pos[1] += puck_velocity[1]
 
-    # Colisão com as paredes
+    # Colisão com as paredes (excluindo as áreas de gol)
     if puck_pos[1] - PUCK_RADIUS <= 0 or puck_pos[1] + PUCK_RADIUS >= HEIGHT:
         puck_velocity[1] = -puck_velocity[1]
-    if puck_pos[0] - PUCK_RADIUS <= 0:
+
+    # Colisão com as laterais, exceto nas áreas de gol
+    if puck_pos[0] - PUCK_RADIUS <= GOAL_WIDTH and GOAL_TOP <= puck_pos[1] <= GOAL_BOTTOM:
+        puck_velocity[0] = abs(puck_velocity[0])  # Permitir passagem pelo gol
+    elif puck_pos[0] + PUCK_RADIUS >= WIDTH - GOAL_WIDTH and GOAL_TOP <= puck_pos[1] <= GOAL_BOTTOM:
+        puck_velocity[0] = -abs(puck_velocity[0])  # Permitir passagem pelo gol
+    elif puck_pos[0] - PUCK_RADIUS <= 0:
+        puck_velocity[0] = abs(puck_velocity[0])  # Colisão com a parede esquerda
+    elif puck_pos[0] + PUCK_RADIUS >= WIDTH:
+        puck_velocity[0] = -abs(puck_velocity[0])  # Colisão com a parede direita
+
+    # Colisão com os gols (somente se o disco estiver completamente dentro da área do gol)
+    if puck_pos[0] - PUCK_RADIUS <= GOAL_WIDTH and GOAL_TOP <= puck_pos[1] <= GOAL_BOTTOM:
         score2 += 1
         reset_puck()
-    if puck_pos[0] + PUCK_RADIUS >= WIDTH:
+    elif puck_pos[0] + PUCK_RADIUS >= WIDTH - GOAL_WIDTH and GOAL_TOP <= puck_pos[1] <= GOAL_BOTTOM:
         score1 += 1
         reset_puck()
 
@@ -180,7 +199,6 @@ while playing:
     # Atualização da tela
     pygame.display.flip()
     clock.tick(FPS)
-
 
 # Mensagem de fim de jogo
 screen.fill(WHITE)

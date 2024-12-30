@@ -118,6 +118,11 @@ while playing:
     seconds = (pygame.time.get_ticks() - start_ticks) // 1000
     time_left = max(game_duration - seconds, 0)
 
+    # Calcular minutos e segundos
+    minutes = time_left // 60
+    seconds = time_left % 60
+    time_formatted = f"{minutes:02}:{seconds:02}"
+
     if time_left == 0:
         playing = False
 
@@ -194,7 +199,7 @@ while playing:
     # Placar e timer
     draw_text(str(score1), font, RED, WIDTH // 4, 20)
     draw_text(str(score2), font, BLUE, WIDTH * 3 // 4, 20)
-    draw_text(f"Tempo: {time_left}s", small_font, BLACK, WIDTH // 2 - 100, 20)
+    draw_text(f"Tempo: {time_formatted}", small_font, BLACK, WIDTH // 2 - 100, 20)
 
     # Atualização da tela
     pygame.display.flip()
